@@ -1,6 +1,6 @@
 package set1
 
-func xor(b1, b2 []byte) []byte {
+func XOR(b1, b2 []byte) []byte {
 	for i, b := range b1 {
 		b2[i] = b ^ b2[i]
 	}

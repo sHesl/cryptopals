@@ -31,7 +31,7 @@ func Test_Challenge2_FixedXOR(t *testing.T) {
 	b1, _ := hex.DecodeString("1c0111001f010100061a024b53535009181c")
 	b2, _ := hex.DecodeString("686974207468652062756c6c277320657965")
 
-	result := xor(b1, b2)
+	result := XOR(b1, b2)
 	resultHex := hex.EncodeToString(result)
 
 	fmt.Printf("Challenge 2: Hex = %s\n", resultHex)
@@ -136,7 +136,7 @@ func Test_Challenge6_CrackRepeatedKeyXOR(t *testing.T) {
 func Test_Challenge7_AESECBDecrypt(t *testing.T) {
 	b := readBase64File("./data/7.txt")
 
-	plaintext := aesECBDecrypt(b, []byte("YELLOW\x20SUBMARINE"))
+	plaintext := AESECBDecrypt(b, []byte("YELLOW\x20SUBMARINE"))
 
 	fmt.Printf("Challenge 7: Plaintext ='%s...'\n", plaintext[:111])
 }
