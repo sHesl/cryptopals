@@ -28,7 +28,7 @@ func (e *ecbAppendEncrypter) encryptionOracle(p []byte) []byte {
 
 	p = append(p, toAppend...)
 
-	p = pkcs7(p, len(e.key))
+	p = PKCS7(p, len(e.key))
 
 	return set1.AESECBEncrypt(p, e.key)
 }
@@ -48,7 +48,7 @@ func (e *ecbAppendEncrypter) encryptionOracleRandomised(p []byte) []byte {
 	p = append(randomPrefix, p...)
 	p = append(p, toAppend...)
 
-	p = pkcs7(p, len(e.key))
+	p = PKCS7(p, len(e.key))
 
 	return set1.AESECBEncrypt(p, e.key)
 }

@@ -1,37 +1,40 @@
 package set2
 
-func pkcs7(b []byte, blockLen int) []byte {
+import "bytes"
+
+func PKCS7(b []byte, blockLen int) []byte {
 	if b == nil {
 		return b
 	}
 
-	var n int
-	if len(b) > blockLen {
-		n = blockLen - (len(b) % blockLen)
-	} else {
-		n = blockLen % len(b)
-	}
-
-	if n == 0 {
+	if blockLen < 1 {
 		return b
 	}
 
-	for i := 0; i < n; i++ {
-		b = append(b, byte(n))
+	if len(b)%blockLen == 0 {
+		return b
 	}
 
-	return b
+	toPad := blockLen - (len(b) % blockLen)
+	padding := bytes.Repeat([]byte{byte(toPad)}, toPad)
+
+	return append(b, padding...)
 }
 
-func pkcs7Validate(p []byte, blockLen int) bool {
-	if len(p) != blockLen {
+func PKCS7Validate(p []byte, blockLen int) bool {
+	if len(p)%blockLen != 0 {
 		return false
 	}
 
 	lastByte := p[len(p)-1]
 	paddingBytes := 1
 
-	for i := paddingBytes; i < len(p)-1; i++ {
+	// Add an extra test case to see if this entire block is padding
+	if bytes.Count(p, []byte{lastByte}) == len(p) {
+		return true
+	}
+
+	for i := paddingBytes; i <= len(p); i++ {
 		if p[len(p)-i] == lastByte {
 			continue
 		}

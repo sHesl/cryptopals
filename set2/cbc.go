@@ -15,7 +15,7 @@ func cbcEncryptUserData(s string, key []byte, iv []byte) []byte {
 
 	p := []byte(prefix + s + append)
 
-	return aesCBCEncrypt(p, key, iv)
+	return AESCBCEncrypt(p, key, iv)
 }
 
 func isAdmin(p []byte) bool {

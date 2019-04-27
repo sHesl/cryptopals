@@ -21,7 +21,7 @@ func newUserECBEncrypter() *userECBEncrypter {
 
 func (e *userECBEncrypter) encrypt(email string) []byte {
 	prof := []byte(profileFor(email))
-	p := pkcs7(prof, len(e.key))
+	p := PKCS7(prof, len(e.key))
 
 	return set1.AESECBEncrypt(p, e.key)
 }

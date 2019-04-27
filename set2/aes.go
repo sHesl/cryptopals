@@ -9,14 +9,14 @@ import (
 	"github.com/sHesl/cryptopals/set1"
 )
 
-func aesCBCEncrypt(p, k, iv []byte) []byte {
+func AESCBCEncrypt(p, k, iv []byte) []byte {
 	blockLen := len(k)
 	bc, err := aes.NewCipher(k)
 	if err != nil {
 		panic(err)
 	}
 
-	p = pkcs7(p, blockLen)
+	p = PKCS7(p, blockLen)
 
 	for i := 0; i < len(p); i += blockLen {
 		var prevBlock []byte
@@ -40,7 +40,7 @@ func aesCBCEncrypt(p, k, iv []byte) []byte {
 	return p
 }
 
-func aesCBCDecrypt(p, k, iv []byte) []byte {
+func ASCBCDecrypt(p, k, iv []byte) []byte {
 	blockLen := len(k)
 	bc, err := aes.NewCipher(k)
 	if err != nil {
@@ -86,7 +86,7 @@ func aesCBCOrECBEncrypt(p []byte) []byte {
 		iv := make([]byte, 16)
 		rand.Read(iv)
 
-		return aesCBCEncrypt(p, k, iv)
+		return AESCBCEncrypt(p, k, iv)
 	}
 
 	return set1.AESECBEncrypt(p, k)

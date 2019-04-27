@@ -14,14 +14,9 @@ import (
 func Test_Challenge9_PKCS7(t *testing.T) {
 	input := []byte("YELLOW SUBMARINE")
 
-	result := pkcs7(input, 20)
+	result := PKCS7(input, 20)
 
-	fmt.Printf("Challenge 1: Padded = '%q'\n", result)
-
-	expected := "YELLOW SUBMARINE\x04\x04\x04\x04"
-	if string(result) != expected {
-		t.Fatalf("Challenge 9: Did not receive expected output. Expected %s. Got %s", expected, result)
-	}
+	fmt.Printf("Challenge 9: Padded = '%q'\n", result)
 }
 
 // Implement CBC mode by hand
@@ -29,11 +24,11 @@ func Test_Challenge10_AESCBCEncrypt(t *testing.T) {
 	key := []byte("YELLOW SUBMARINE")
 	iv := []byte("0000000000000000")
 
-	encryptResult := aesCBCEncrypt([]byte("YELLOW SUBMARINEYELLOW SUBMARIN"), key, iv)
+	encryptResult := AESCBCEncrypt([]byte("YELLOW SUBMARINEYELLOW SUBMARIN"), key, iv)
 	bl, _ := aes.NewCipher(key)
 	ecr := cipher.NewCBCEncrypter(bl, iv)
 	expectedEncryptResult := make([]byte, len(encryptResult))
-	ecr.CryptBlocks(expectedEncryptResult, pkcs7([]byte("YELLOW SUBMARINEYELLOW SUBMARIN"), len(key)))
+	ecr.CryptBlocks(expectedEncryptResult, PKCS7([]byte("YELLOW SUBMARINEYELLOW SUBMARIN"), len(key)))
 
 	if !bytes.Equal(encryptResult, expectedEncryptResult) {
 		t.Fatalf("Challenge 1: AES CBC ciphertext did not match Go implementation. Expected %s. Got %s",
@@ -41,7 +36,7 @@ func Test_Challenge10_AESCBCEncrypt(t *testing.T) {
 	}
 
 	expectedDecryptResult := []byte("YELLOW SUBMARINEYELLOW SUBMARIN\x01")
-	decryptResult := aesCBCDecrypt(encryptResult, key, iv)
+	decryptResult := ASCBCDecrypt(encryptResult, key, iv)
 
 	if !bytes.Equal(decryptResult, expectedDecryptResult) {
 		t.Fatalf("Challenge 1: AES CBC plaintext did not match original input. Expected %s. Got %s",
@@ -51,6 +46,7 @@ func Test_Challenge10_AESCBCEncrypt(t *testing.T) {
 	fmt.Printf("Challenge 10: AES CBC roundtrip successful!\n")
 }
 
+// Randomly encrypt a string with either CBC or ECB and prove you can tell the difference
 func Test_Challenge11_EncryptionOracle(t *testing.T) {
 	p := []byte("YELLOW SUBMARINEYELLOW SUBMARINEYELLOW SUBMARINEYELLOW SUBMARINE")
 
@@ -75,6 +71,8 @@ func Test_Challenge11_EncryptionOracle(t *testing.T) {
 	fmt.Printf("Challenge 11: Plaintext was encrypted by %s\n", mode)
 }
 
+// Decrypt a given ECB string by performing a byte at a time decryption
+// (The provided string wil include a fixed prefix we need to determine)
 func Test_Challenge12_EBCDecryptByteAtATime(t *testing.T) {
 	ee := newECBAppendEncrypter()
 
@@ -127,6 +125,8 @@ func Test_Challenge12_EBCDecryptByteAtATime(t *testing.T) {
 	fmt.Printf("Challenge 12: Secret value is %s\n", string(knownBytes))
 }
 
+// Manipulate an ECB ciphertext so that when it is decrypted, it includes reserved or restricted characters
+// that would have been stripped during encryption
 func Test_Challenge13_EBCCopyPasteAttack(t *testing.T) {
 	e := newUserECBEncrypter()
 
@@ -140,7 +140,7 @@ func Test_Challenge13_EBCCopyPasteAttack(t *testing.T) {
 	// of the block. We can't just put this at the start of our block because 'email=' is appended.
 	admin := []byte("xxxxxxxxxxxxxxxxxxxxxxxxxxadmin")
 
-	// We need to fix up the padding. If our second block should consist of just the word 'admin', then we should
+	// We need to fix up the length. If our second block should consist of just the word 'admin', then we should
 	// add padding equal to blocklen-len("admin"). That is 27 bytes of '27'.
 	for i := 0; i < 27; i++ {
 		admin = append(admin, byte(27))
@@ -162,6 +162,8 @@ func Test_Challenge13_EBCCopyPasteAttack(t *testing.T) {
 	fmt.Printf("Challenge 13: Here is your admin account! %s\na", e.decrypt(spliced))
 }
 
+// Decrypt a given ECB string by performing a byte at a time decryption
+// (The provided string wil include a fixed prefix and a random prefix we need to determine)
 func Test_Challenge14_EBCDecryptByteAtATime(t *testing.T) {
 	// I figure the nature of this challenge is to prove that if the first block contains random content,
 	// and we are using ECB (where blocks are independent), we can just skip the entire first block rather
@@ -174,20 +176,21 @@ func Test_Challenge14_EBCDecryptByteAtATime(t *testing.T) {
 	fmt.Printf("Challenge 14: TBC\n")
 }
 
+// Write a function that determines valid PKCS7 padding
 func Test_Challenge15_PKCS7PaddingValidation(t *testing.T) {
 	fmt.Printf("Challenge 15: PKCS7 Validation\n")
 
 	input1 := []byte("ICE ICE BABY\x04\x04\x04\x04")
-	fmt.Printf("%v is valid ? %v\n", input1, pkcs7Validate(input1, 16))
+	fmt.Printf("%v is valid ? %v\n", input1, PKCS7Validate(input1, 16))
 
 	input2 := []byte("ICE ICE BABY\x05\x05\x05\x05")
-	fmt.Printf("%v is valid ? %v\n", input2, pkcs7Validate(input2, 16))
+	fmt.Printf("%v is valid ? %v\n", input2, PKCS7Validate(input2, 16))
 
 	input3 := []byte("ICE ICE BABY\x03\x03\x03\x03")
-	fmt.Printf("%v is valid ? %v\n", input3, pkcs7Validate(input3, 16))
+	fmt.Printf("%v is valid ? %v\n", input3, PKCS7Validate(input3, 16))
 
 	input4 := []byte("ICE ICE BABY\x01\x02\x03\x04")
-	fmt.Printf("%v is valid ? %v\n", input4, pkcs7Validate(input4, 16))
+	fmt.Printf("%v is valid ? %v\n", input4, PKCS7Validate(input4, 16))
 }
 
 func Test_Challenge16_CBCBitflipping(t *testing.T) {
@@ -222,7 +225,7 @@ func Test_Challenge16_CBCBitflipping(t *testing.T) {
 	ciphertext[iFirst] ^= semiColonXorByte
 	ciphertext[iSecond] ^= equalsXorByte
 
-	plaintext := aesCBCDecrypt(ciphertext, randomAESKey, randomIV)
+	plaintext := ASCBCDecrypt(ciphertext, randomAESKey, randomIV)
 
 	fmt.Printf("Challenge 16: Bit flipped admin! %s\n", plaintext)
 }
