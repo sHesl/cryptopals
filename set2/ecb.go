@@ -9,14 +9,19 @@ import (
 )
 
 type ecbAppendEncrypter struct {
-	key []byte
+	key          []byte
+	randomPrefix []byte
 }
 
 func newECBAppendEncrypter() *ecbAppendEncrypter {
 	k := make([]byte, 32)
 	rand.Read(k)
 
-	return &ecbAppendEncrypter{key: k}
+	randI := int(mrand.Float32()*30) + 1
+	prefix := make([]byte, randI)
+	rand.Read(prefix)
+
+	return &ecbAppendEncrypter{key: k, randomPrefix: prefix}
 }
 
 // encryptionOracle encrypts the given plaintext, but only *after* prependeding a secret b64 string
@@ -33,19 +38,14 @@ func (e *ecbAppendEncrypter) encryptionOracle(p []byte) []byte {
 	return set1.AESECBEncrypt(p, e.key)
 }
 
-// encryptionOracleRandomised encrypts the given plaintext, but only *after* appending a secret b64 string
-// It uses the same key for every operation, allowing for byte-at-a-time decryption.
+// encryptionOracleRandomised encrypts the given plaintext, but only *after* appending the secret b64 prefix
+// It uses the same key *and prefix* for every operation, allowing for byte-at-a-time decryption.
 func (e *ecbAppendEncrypter) encryptionOracleRandomised(p []byte) []byte {
-	// Add between 0 and 20 bytes of random noise
-	randI := int(mrand.Float32() * 20)
-	randomPrefix := make([]byte, randI)
-	rand.Read(randomPrefix)
+	p = append(e.randomPrefix, p...)
 
 	toAppendB64 := `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK`
-
 	toAppend, _ := base64.StdEncoding.DecodeString(toAppendB64)
 
-	p = append(randomPrefix, p...)
 	p = append(p, toAppend...)
 
 	p = PKCS7(p, len(e.key))

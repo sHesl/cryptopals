@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/sHesl/cryptopals/cryptocrack"
 )
 
 // Implement PKCS#7 padding
@@ -77,6 +79,7 @@ func Test_Challenge12_EBCDecryptByteAtATime(t *testing.T) {
 	ee := newECBAppendEncrypter()
 
 	// We want to know the length of our secret, so that we can create an input of the same length to decrypt
+	// Note that this includes the padding applied to the secret, that's fine, we'll also 'crack' the padding
 	secretLen := len(ee.encryptionOracle([]byte{}))
 
 	// Make a string of 'A's of the same length of our secret, minus one. The one 'missing' byte means
@@ -93,7 +96,7 @@ func Test_Challenge12_EBCDecryptByteAtATime(t *testing.T) {
 		// Encrypt our string of A's
 		curProgress := ee.encryptionOracle(aaaas)
 
-		// Create a new crib of equal length to the number of bytes we still need to crack
+		// Create a new crib of equal length to the number of bytes we need to crack
 		crib := make([]byte, secretLen)
 
 		// Start by filling the crib with our A's
@@ -163,17 +166,82 @@ func Test_Challenge13_EBCCopyPasteAttack(t *testing.T) {
 }
 
 // Decrypt a given ECB string by performing a byte at a time decryption
-// (The provided string wil include a fixed prefix and a random prefix we need to determine)
+// (The provided string will include a fixed prefix and a random prefix we need to determine the length of)
 func Test_Challenge14_EBCDecryptByteAtATime(t *testing.T) {
-	// I figure the nature of this challenge is to prove that if the first block contains random content,
-	// and we are using ECB (where blocks are independent), we can just skip the entire first block rather
-	// than try and decrypt the random content. But if we are using padding, and we can't tell how much padding
-	// was applied (that would involve decrypting with the key...), how can I know how many bytes to make my
-	// plaintext to ensure the first block is factored out?
+	ee := newECBAppendEncrypter()
+	blockLen := 32
 
-	// :(
+	// First, we want to know how long our random prefix is. To do this, we want to force an ECB block repeat.
+	// If we offset our two identical blocks by N, and we detect a block repeat, that means blockLen-N is the
+	// length of our random prefix! We also keep track of how much padding is needed to convert the prefix into
+	// a complete block (we need to do this so we can safely disgard the entire first block while cracking).
+	prefixPadding := 0
+	cribBlock := bytes.Repeat([]byte{'*'}, blockLen)
+	for ; prefixPadding < blockLen; prefixPadding++ {
+		b := bytes.Repeat([]byte{'_'}, prefixPadding) // offset our block
+		b = append(b, cribBlock...)                   // add two identical blocks after the offset
+		b = append(b, cribBlock...)                   //...
 
-	fmt.Printf("Challenge 14: TBC\n")
+		c := ee.encryptionOracleRandomised(b)
+		if cryptocrack.DetectDuplicateBlock(c, blockLen) {
+			break
+		}
+	}
+
+	// Now we can just repeat the process from Challenge 12, except remembering to block align our AAAs
+
+	// We want to know the length of our secret, so that we can create an input of the same length to decrypt
+	// Note that this includes the padding applied to the secret, that's fine, we'll also 'crack' the padding
+	secretLen := 148
+	curByte := secretLen + prefixPadding - 1
+	padding := bytes.Repeat([]byte{'_'}, prefixPadding)
+	aaaas := bytes.Repeat([]byte{'A'}, curByte)
+	blockAlignedAAAAs := append(padding, aaaas...) // stick the padding before our aaas
+
+	knownBytes := make([]byte, 0)
+
+	for curByte >= blockLen-prefixPadding {
+		// Encrypt our string of A's w/ the block alignment padding
+		curProgress := ee.encryptionOracleRandomised(blockAlignedAAAAs)
+		curProgress = curProgress[blockLen:] // ignore the first block, it is just our random prefix and padding
+
+		// Create a new crib of equal length to the number of bytes we need to crack
+		crib := make([]byte, secretLen+prefixPadding)
+		copy(crib, blockAlignedAAAAs)
+
+		// Next, need to copy all the bytes we've successfully decrypted and add them to our 'A's at their
+		// respective positions. This means if we know the first 3 bytes are D,O,G, we want our 'A's to look
+		// like 'AAAAADOG_' where _ is the byte we are iterating and the length of 'A's is equal to the
+		// number of bytes we still have to decrypt.
+		kbi := 0
+		for i := curByte; kbi < len(knownBytes); i++ {
+			crib[i] = knownBytes[kbi]
+			kbi++
+		}
+
+		// For the unknown byte, iterate up from 0 to 255 to find whichever one matches curProgress
+		for b := byte(0); b <= byte(255); b++ {
+			crib[secretLen+prefixPadding-1] = b
+
+			curAttempt := ee.encryptionOracleRandomised(crib)
+			curAttempt = curAttempt[blockLen:] // Disgard the first block again
+
+			if bytes.Equal(curProgress[:secretLen], curAttempt[:secretLen]) {
+				curByte--
+				blockAlignedAAAAs = blockAlignedAAAAs[:len(blockAlignedAAAAs)-1]
+
+				knownBytes = append(knownBytes, b)
+				break
+			}
+
+			if b == byte(255) {
+				goto a
+			}
+		}
+	}
+a:
+	result := bytes.Replace(knownBytes, []byte{'A'}, []byte{}, -1)
+	fmt.Printf("Challenge 14: Secret value is %s\n", string(result))
 }
 
 // Write a function that determines valid PKCS7 padding
