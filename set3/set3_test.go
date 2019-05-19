@@ -2,6 +2,7 @@ package set3
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -9,8 +10,8 @@ import (
 	"github.com/sHesl/cryptopals/set2"
 )
 
-// Pick one of these random strings, encrypt it with a random AES key and then prove you can decrypt it via a
-// CBC padding oracle attack.
+// Pick, at random, a string from the set provided, encrypt it with a random AES key/IV and then prove you can
+// decrypt it via a CBC padding oracle attack.
 func Test_Challenge17_CBCPaddingOracle(t *testing.T) {
 	blockLen := 16
 
@@ -108,7 +109,17 @@ func Test_Challenge17_CBCPaddingOracle(t *testing.T) {
 		padByte = byte(0)
 	}
 
-	plaintext = bytes.ReplaceAll(plaintext, []byte{11}, []byte{}) // Don't print newline padding :)
+	plaintext = bytes.ReplaceAll(plaintext, []byte{11}, []byte{}) // Don't print newline padding
 
 	fmt.Printf("Challenge 17: Cracked via padding oracle - %s\n", plaintext)
+}
+
+// Decrypt the given string, encrypted under the key 'YELLOW SUBMARINE' via AES CTR
+func Test_Challenge18_CTRDecrypt(t *testing.T) {
+	ciphertextB64 := "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ=="
+	ciphertext, _ := base64.StdEncoding.DecodeString(ciphertextB64)
+
+	plaintext := aesCTR([]byte("YELLOW SUBMARINE"), ciphertext)
+
+	fmt.Printf("Challenge 18: Plaintext - %s\n", plaintext)
 }
