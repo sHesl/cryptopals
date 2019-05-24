@@ -2,11 +2,13 @@ package set3
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"testing"
 
 	"github.com/sHesl/cryptopals/cryptocrack"
+	"github.com/sHesl/cryptopals/set1"
 	"github.com/sHesl/cryptopals/set2"
 )
 
@@ -122,4 +124,40 @@ func Test_Challenge18_CTRDecrypt(t *testing.T) {
 	plaintext := aesCTR([]byte("YELLOW SUBMARINE"), ciphertext)
 
 	fmt.Printf("Challenge 18: Plaintext - %s\n", plaintext)
+}
+
+// 19 was supposed to show us the weakness of using a fixed nonce in CTR mode (i.e always starting at zero),
+// but it is hard to look past the small scale leakage of plaintext material via substitution when nonce reuse
+// can be catastrophically broken by encrypting a 'zerod' string and XORing the results
+func Test_Challenge19_CTRFixedNonce1(t *testing.T) {
+	p, _ := base64.StdEncoding.DecodeString("SSBoYXZlIG1ldCB0aGVtIGF0IGNsb3NlIG9mIGRheQ==")
+	k := make([]byte, 32)
+	rand.Read(k)
+
+	c1 := aesCTR(k, p)
+
+	zeros := bytes.Repeat([]byte("0"), len(p))
+	c2 := aesCTR(k, zeros)
+
+	xord := set1.XOR([]byte(c2), []byte(c1))
+	result := set1.XOR(xord, zeros)
+
+	fmt.Printf("Challenge 19: Cracked via exploiting fixed nonce - %s\n", result)
+}
+
+// 20 is easily solved using the solution to 19 as well...
+func Test_Challenge20_CTRFixedNonce2(t *testing.T) {
+	p, _ := base64.StdEncoding.DecodeString("QW5kIGNvdW50IG91ciBtb25leSAvIFlvLCB3ZWxsIGNoZWNrIHRoaXMgb3V0LCB5byBFbGk=")
+	k := make([]byte, 32)
+	rand.Read(k)
+
+	c1 := aesCTR(k, p)
+
+	zeros := bytes.Repeat([]byte("0"), len(p))
+	c2 := aesCTR(k, zeros)
+
+	xord := set1.XOR([]byte(c2), []byte(c1))
+	result := set1.XOR(xord, zeros)
+
+	fmt.Printf("Challenge 20: Cracked via exploiting fixed nonce - %s\n", result)
 }
