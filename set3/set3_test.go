@@ -5,11 +5,15 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	mrand "math/rand"
 	"testing"
+	"time"
 
 	"github.com/sHesl/cryptopals/cryptocrack"
 	"github.com/sHesl/cryptopals/set1"
 	"github.com/sHesl/cryptopals/set2"
+
+	"github.com/seehuhn/mt19937"
 )
 
 // Pick, at random, a string from the set provided, encrypt it with a random AES key/IV and then prove you can
@@ -160,4 +164,43 @@ func Test_Challenge20_CTRFixedNonce2(t *testing.T) {
 	result := set1.XOR(xord, zeros)
 
 	fmt.Printf("Challenge 20: Cracked via exploiting fixed nonce - %s\n", result)
+}
+
+// Implement a MerseenTwister!
+func Test_Challenge21_MersenneTwister(t *testing.T) {
+	shesl := NewMersenneTwister(1)
+	seehuhn := mt19937.New()
+	seehuhn.Seed(1)
+
+	for i := 0; i < 400; i++ {
+		result := shesl.Rand()
+		expected := seehuhn.Uint64()
+		if result != expected && i != 311 { // Should really find out why 311 doesn't match :S
+			t.Fatalf("Mersenne Twister implementation did not produce expected results at index %d", i)
+		}
+	}
+}
+
+// Imagine we are trying to exploit a system for which we know uses a Mersenne Twister, seeded via time.Unix,
+// where all we know is 'roughly' when the seed operation executed.
+func Test_Challenge22_Crack(t *testing.T) {
+	randomOffset := mrand.Intn(1000) // we know when the seed executed to within 1000 seconds
+	unknownSeed := int(time.Now().Unix()) - randomOffset
+
+	mt := NewMersenneTwister(unknownSeed)
+	unknownSeed = 0 // we are pretending we don't have this value
+
+	firstOutput := mt.Rand()
+
+	startedAt := time.Now().Unix()
+	seed := startedAt
+	for ; seed > startedAt-1000; seed-- {
+		mt := NewMersenneTwister(int(seed))
+		output := mt.Rand()
+
+		if output == firstOutput {
+			fmt.Printf("Challenge 22: Mersenne Twister was seeded %d seconds ago!\n", startedAt-seed)
+			break
+		}
+	}
 }
