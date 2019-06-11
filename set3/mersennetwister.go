@@ -64,3 +64,36 @@ func (mt *MersenneTwister) twist() {
 
 	mt.i = 0
 }
+
+type MersenneTwisterClone struct {
+	state [312]uint64
+	i     int
+}
+
+func NewMersenneTwisterClone() *MersenneTwisterClone {
+	return &MersenneTwisterClone{i: 0, state: [312]uint64{}}
+}
+
+// Clone takes the output from a MersenneTwister and reverses the diffusion operation to reveal the original
+// state. When this value is recovered, it is set as the state of the internal cloned state.
+func (mtc *MersenneTwisterClone) Clone(mtOutput uint64) {
+	x := mtc.untemper(mtOutput)
+	mtc.state[mtc.i] = x
+	mtc.i++
+}
+
+// untemper takes a MT output and reverses the tempering to recover the original element state. Doing this
+// for a full twist period (312 times), allows us to recreate the entire MT state.
+func (mtc *MersenneTwisterClone) untemper(i uint64) uint64 {
+	i ^= (i >> l)
+	i ^= (i << t) & c
+
+	// 64/17 = 3.7, repeat this 3 times to reverse
+	i ^= (i << s) & b
+	i ^= (i << s) & b
+	i ^= (i << s) & b
+
+	i ^= (i >> u) & d
+
+	return i
+}

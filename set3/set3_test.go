@@ -183,7 +183,7 @@ func Test_Challenge21_MersenneTwister(t *testing.T) {
 
 // Imagine we are trying to exploit a system for which we know uses a Mersenne Twister, seeded via time.Unix,
 // where all we know is 'roughly' when the seed operation executed.
-func Test_Challenge22_Crack(t *testing.T) {
+func Test_Challenge22_MersenneTwisterSeedCrack(t *testing.T) {
 	randomOffset := mrand.Intn(1000) // we know when the seed executed to within 1000 seconds
 	unknownSeed := int(time.Now().Unix()) - randomOffset
 
@@ -202,5 +202,20 @@ func Test_Challenge22_Crack(t *testing.T) {
 			fmt.Printf("Challenge 22: Mersenne Twister was seeded %d seconds ago!\n", startedAt-seed)
 			break
 		}
+	}
+}
+
+// Given a series of 312 random values produced via a Mersenne Twister, reverse engineer the original state,
+// without knowledge of the seed.
+func Test_Challenge23_CloneMersenneTwister(t *testing.T) {
+	mt := NewMersenneTwister(int(time.Now().Unix()))
+	mtc := NewMersenneTwisterClone()
+
+	for i := 0; i < 312; i++ {
+		mtc.Clone(mt.Rand())
+	}
+
+	if mtc.state == mt.state {
+		fmt.Printf("Challenge 23: Cloned a Mersenne Twister state set!\n")
 	}
 }
