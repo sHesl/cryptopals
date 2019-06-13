@@ -43,7 +43,7 @@ func scoreRune(r rune) int {
 	return -1
 }
 
-func scorePlaintext(b []byte) int {
+func ScorePlaintext(b []byte) int {
 	score := 0
 
 	for _, r := range b {

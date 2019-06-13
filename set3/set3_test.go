@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	mrand "math/rand"
 	"testing"
@@ -218,4 +219,50 @@ func Test_Challenge23_CloneMersenneTwister(t *testing.T) {
 	if mtc.state == mt.state {
 		fmt.Printf("Challenge 23: Cloned a Mersenne Twister state set!\n")
 	}
+}
+
+func Test_Challenge24_MersenneTwisterCipher(t *testing.T) {
+	b := make([]byte, 16)
+	rand.Read(b)
+	seed := binary.BigEndian.Uint16(b)
+	mt1 := NewMersenneTwister(int(seed))
+
+	seed = 0 // We're not supposed to know the value of the seed!
+
+	// Extend a known plaintext with 10 bytes of random pre/suffix (5 either side)
+	plaintext := []byte(" encrypted content is here, crack it please")
+	randomPrefix, randomSuffix := make([]byte, 5), make([]byte, 5)
+	rand.Read(randomPrefix)
+	rand.Read(randomSuffix)
+	plaintext = append(randomPrefix, append(plaintext, randomSuffix...)...)
+
+	// Encrypt our partially unknown plaintext via our MT stream
+	ciphertext := mt1.Encrypt(plaintext)
+
+	attempts := make(map[int]int)
+	// Now, we need to brute force our 16 bit seed!
+	// To make this harder, let's pretend we don't even know our plaintext ;)
+	for i := 0; i < 65535; i++ {
+		mt2 := NewMersenneTwister(i)
+		crib := []byte("0000000000000000000000000000000000000000000000000000000000000000") // key stream reusue ;)
+		encryptedCrib := mt2.Encrypt(crib)
+		result := set1.XOR(ciphertext, encryptedCrib)
+
+		attempts[i] = set1.ScorePlaintext(result)
+	}
+
+	bestAttemptScore := 0
+	bestAttemptSeed := 0
+	for seed, score := range attempts {
+		if score > bestAttemptScore {
+			bestAttemptScore = score
+			bestAttemptSeed = seed
+		}
+	}
+
+	// Use our best attempt seed to try and decrypt our plaintext!
+	mt3 := NewMersenneTwister(bestAttemptSeed)
+	result := mt3.Encrypt(ciphertext)
+
+	fmt.Printf("Challenge 24: Cracked Mersenne Twister stream via seed! Plaintext was '%s'\n", result)
 }

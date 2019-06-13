@@ -74,7 +74,7 @@ func Test_Challenge4_DetectSingleByteXOR(t *testing.T) {
 		}
 
 		potentialPlaintext, potentialRune := singleByteXORDecipher(b)
-		lineScore := scorePlaintext([]byte(potentialPlaintext))
+		lineScore := ScorePlaintext([]byte(potentialPlaintext))
 
 		if lineScore > highestScore {
 			highestScore = lineScore

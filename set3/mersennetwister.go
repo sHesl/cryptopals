@@ -51,6 +51,15 @@ func (mt *MersenneTwister) Rand() uint64 {
 	return result
 }
 
+func (mt *MersenneTwister) Encrypt(plaintext []byte) []byte {
+	encrypted := make([]byte, len(plaintext))
+	for i := 0; i < len(plaintext); i++ {
+		encrypted[i] = byte(mt.Rand()) ^ plaintext[i]
+	}
+
+	return encrypted
+}
+
 // twist continues the series for this seed, providing the next n values to generate against
 func (mt *MersenneTwister) twist() {
 	for i := 0; i < n-1; i++ {
@@ -88,8 +97,7 @@ func (mtc *MersenneTwisterClone) untemper(i uint64) uint64 {
 	i ^= (i >> l)
 	i ^= (i << t) & c
 
-	// 64/17 = 3.7, repeat this 3 times to reverse
-	i ^= (i << s) & b
+	i ^= (i << s) & b // I have no idea why this needs to be repeated 3 times...
 	i ^= (i << s) & b
 	i ^= (i << s) & b
 

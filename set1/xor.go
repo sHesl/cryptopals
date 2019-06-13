@@ -24,7 +24,7 @@ func singleByteXORDecipher(b []byte) (string, rune) {
 
 	for r := '\x00'; r < '\xff'; r++ {
 		pt := singleCharacterXOR(b, r)
-		score := scorePlaintext(pt)
+		score := ScorePlaintext(pt)
 
 		if score > highestScore {
 			highestScore = score
