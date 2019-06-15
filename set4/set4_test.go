@@ -18,10 +18,11 @@ func Test_Challenge25_CTRRandomReadWriteAccess(t *testing.T) {
 
 	ciphertext := set3.AESCTR(key, plaintext)
 
-	// Using the same logic as the CBC Bitflipping attack, we're going to flip the final byte from 0-255 until
-	// we produce a ciphertext identical to our input ciphertext. If they match, the value we placed at the
-	// final position XOR'd with the keystream byte produces our ciphertext byte (aka b ^ X = result where we
-	// have b and X).
+	// Using the same logic as the CBC padding oracle attack, we're going to flip the final byte from 0-255
+	// until we produce a ciphertext identical to our input ciphertext. If they match, the value we selected as
+	// our plaintext byte is the actual plaintext byte. Continue doing that backwards through the ciphertext
+	// until we've cracked the entire input. If you want the keystream after that, just need to use the XOR
+	// trick from the same challenge to reveal the keystream byte for the given plaintext/ciphertext byte combo
 
 	knownBytes := make([]byte, len(ciphertext))
 	numCrackedBytes := 0
