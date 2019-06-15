@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 )
 
-func readBase64File(fileName string) []byte {
+func ReadBase64File(fileName string) []byte {
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		panic(err)

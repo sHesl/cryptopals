@@ -126,7 +126,7 @@ func Test_Challenge18_CTRDecrypt(t *testing.T) {
 	ciphertextB64 := "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ=="
 	ciphertext, _ := base64.StdEncoding.DecodeString(ciphertextB64)
 
-	plaintext := aesCTR([]byte("YELLOW SUBMARINE"), ciphertext)
+	plaintext := AESCTR([]byte("YELLOW SUBMARINE"), ciphertext)
 
 	fmt.Printf("Challenge 18: Plaintext - %s\n", plaintext)
 }
@@ -139,10 +139,10 @@ func Test_Challenge19_CTRFixedNonce1(t *testing.T) {
 	k := make([]byte, 32)
 	rand.Read(k)
 
-	c1 := aesCTR(k, p)
+	c1 := AESCTR(k, p)
 
 	zeros := bytes.Repeat([]byte("0"), len(p))
-	c2 := aesCTR(k, zeros)
+	c2 := AESCTR(k, zeros)
 
 	xord := set1.XOR([]byte(c2), []byte(c1))
 	result := set1.XOR(xord, zeros)
@@ -156,10 +156,10 @@ func Test_Challenge20_CTRFixedNonce2(t *testing.T) {
 	k := make([]byte, 32)
 	rand.Read(k)
 
-	c1 := aesCTR(k, p)
+	c1 := AESCTR(k, p)
 
 	zeros := bytes.Repeat([]byte("0"), len(p))
-	c2 := aesCTR(k, zeros)
+	c2 := AESCTR(k, zeros)
 
 	xord := set1.XOR([]byte(c2), []byte(c1))
 	result := set1.XOR(xord, zeros)

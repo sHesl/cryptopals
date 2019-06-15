@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 )
 
-func aesCTR(key []byte, input []byte) string {
+func AESCTR(key []byte, input []byte) string {
 	block, _ := aes.NewCipher(key)
 	keystream := genKeystream(block, len(input))
 
@@ -21,12 +21,9 @@ func aesCTR(key []byte, input []byte) string {
 func genKeystream(block cipher.Block, inputLen int) []byte {
 	bs := block.BlockSize()
 
-	extraBlock := 0 // even if our input isn't perfectly divisible by blockLen, we need a full final block
-	if (inputLen/bs)%bs != 0 {
-		extraBlock = bs
-	}
+	inputLen += bs - (inputLen % bs) // Ensure we've got a full block
 
-	keystream := make([]byte, ((inputLen/bs)*bs)+extraBlock)
+	keystream := make([]byte, inputLen)
 	ctrB := make([]byte, block.BlockSize())      // ctr as a LitteEndian []byte
 	ctrI := binary.LittleEndian.Uint16(ctrB[8:]) // ctr as a LitteEndian uint16
 

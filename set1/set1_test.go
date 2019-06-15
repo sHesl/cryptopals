@@ -104,7 +104,7 @@ func Test_Challenge5_RepeatedKeyXOR(t *testing.T) {
 // There's a file here. It's been base64'd after being encrypted with repeating-key XOR.
 // Decrypt it.
 func Test_Challenge6_CrackRepeatedKeyXOR(t *testing.T) {
-	b := readBase64File("./data/6.txt")
+	b := ReadBase64File("./data/6.txt")
 
 	// Attempt to determine our key length by finding the minimum hamming distances for different block lengths.
 	// Shortest average distance suggests the likely block length.
@@ -134,7 +134,7 @@ func Test_Challenge6_CrackRepeatedKeyXOR(t *testing.T) {
 }
 
 func Test_Challenge7_AESECBDecrypt(t *testing.T) {
-	b := readBase64File("./data/7.txt")
+	b := ReadBase64File("./data/7.txt")
 
 	plaintext := AESECBDecrypt(b, []byte("YELLOW\x20SUBMARINE"))
 
