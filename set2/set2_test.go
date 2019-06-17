@@ -38,7 +38,7 @@ func Test_Challenge10_AESCBCEncrypt(t *testing.T) {
 	}
 
 	expectedDecryptResult := []byte("YELLOW SUBMARINEYELLOW SUBMARIN\x01")
-	decryptResult := ASCBCDecrypt(encryptResult, key, iv)
+	decryptResult := AESCBCDecrypt(encryptResult, key, iv)
 
 	if !bytes.Equal(decryptResult, expectedDecryptResult) {
 		t.Fatalf("Challenge 1: AES CBC plaintext did not match original input. Expected %s. Got %s",
@@ -293,7 +293,7 @@ func Test_Challenge16_CBCBitflipping(t *testing.T) {
 	ciphertext[iFirst] ^= semiColonXorByte
 	ciphertext[iSecond] ^= equalsXorByte
 
-	plaintext := ASCBCDecrypt(ciphertext, randomAESKey, randomIV)
+	plaintext := AESCBCDecrypt(ciphertext, randomAESKey, randomIV)
 
 	fmt.Printf("Challenge 16: Bit flipped admin! %s\n", plaintext)
 }

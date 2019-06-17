@@ -40,7 +40,7 @@ func AESCBCEncrypt(p, k, iv []byte) []byte {
 	return p
 }
 
-func ASCBCDecrypt(p, k, iv []byte) []byte {
+func AESCBCDecrypt(p, k, iv []byte) []byte {
 	blockLen := len(k)
 	bc, err := aes.NewCipher(k)
 	if err != nil {

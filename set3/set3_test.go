@@ -28,7 +28,7 @@ func Test_Challenge17_CBCPaddingOracle(t *testing.T) {
 	// Now we want to try and crack the contents of ciphertext, using only a padding oracle.
 	// Let's define our padding oracle here (this should be the last place we 'know' the key!)
 	paddingOracle := func(c, iv []byte) bool {
-		result := set2.ASCBCDecrypt(c, key, iv)
+		result := set2.AESCBCDecrypt(c, key, iv)
 		valid := set2.PKCS7Validate(result, blockLen)
 		return valid
 	}
