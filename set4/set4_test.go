@@ -82,7 +82,7 @@ func Test_Challenge27_CBCKeyAsIV(t *testing.T) {
 	encrypted := set2.AESCBCEncrypt(input, keyAndIV, keyAndIV)
 
 	// The exercise assumes an oracle that only returns the decrypted plaintext during an error, but to save
-	// time I'm just going to print out only the first block of decrypted plaintext (that is all we will need).
+	// time I'm just going to print out the decrypted plaintext.
 	poisonedInput := append(encrypted[:32], append(bytes.Repeat([]byte{0}, 32), encrypted[:32]...)...)
 	decrypted := set2.AESCBCDecrypt(poisonedInput, keyAndIV, keyAndIV)
 
@@ -95,4 +95,54 @@ func Test_Challenge27_CBCKeyAsIV(t *testing.T) {
 	// The actual exercise attempts to use the real world scenario of erroring on decryption failures, but the
 	// fundamental lesson is this: if you use the key as the IV as well, an attacker with access to plaintext
 	// material and ciphertext material can uncover the value of the first block (the IV aka the key).
+}
+
+func Test_Challenge28_SHA1MAC(t *testing.T) {
+	key := []byte(`super secret key`)
+	input := []byte(`protect my integrity!`)
+
+	mac := SHA1MAC(key, input)
+	inputChange := SHA1MAC(key, input[:20])
+
+	if bytes.Equal(mac, inputChange) {
+		t.Fatalf("SHA1 macs should differ when input differs")
+	}
+
+	keyChange := SHA1MAC(key[:15], input)
+
+	if bytes.Equal(mac, keyChange) {
+		t.Fatalf("SHA1 macs should differ when key differs")
+	}
+
+	fmt.Printf("Challenge 28: SHA1 secret-prefix MAC implemented!\n")
+}
+
+func Test_Challenge29_SHA1MACLengthExtension(t *testing.T) {
+	key := []byte(`super secret key attacker does not know`)
+
+	hashOracle := func(input []byte) []byte { return SHA1MAC(key, input) }
+	validateHashOracle := func(input, hash []byte) bool {
+		got := SHA1MAC(key, input)
+		return bytes.Equal(got, hash)
+	}
+
+	ogMessage := []byte(`comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon`)
+	ogHash := hashOracle(ogMessage)
+
+	extension := []byte(`;admin=true`)
+	extHash := SHA1Extension(ogHash, ogMessage, extension) // a hash of our extension from og hash state
+
+	// When forging an extended message, we must pretend that padding from the original message was actually
+	// part of our original message. Remember, the padding length is calculate AFTER the key has already been
+	// included in the digest (h.Write(key), h.Write(msg), h.SumWithPadding()), so you must extend the padding
+	// length to include the length of the key as well. We don't need the actual key, we can just use zero bytes
+	keyLenPadding := bytes.Repeat([]byte{0x00}, len(key))
+	glue := messagePadding(append(ogMessage, keyLenPadding...))
+
+	forgedMessage := append(ogMessage, glue...)
+	forgedMessage = append(forgedMessage, extension...)
+
+	if validateHashOracle(forgedMessage, extHash) {
+		fmt.Printf("Challenge 29: SHA1 length extension attack used to forge an admin cookie!\n")
+	}
 }
