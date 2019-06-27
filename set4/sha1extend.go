@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 )
 
+// Implementation copied from cryto/sha1
+
 const (
 	chunk = 64
 
@@ -19,8 +21,8 @@ const (
 	_K3 = 0xCA62C1D6
 )
 
-// digest represents the partial evaluation of a checksum.
-type digest struct {
+// sha1Digest represents the partial evaluation of a checksum.
+type sha1Digest struct {
 	h   [5]uint32
 	x   [chunk]byte
 	nx  int
@@ -30,9 +32,9 @@ type digest struct {
 // SHA1Extension works from code primarily copied from sha1block.go and sha1.go, but the constructor
 // allows for setting the internal state of the algorithm allowing for length-extension attacks
 func SHA1Extension(mac, oldMessage, extension []byte) []byte {
-	d := new(digest)
+	d := new(sha1Digest)
 
-	// Seed our MAC from the final state (digest) of the previous message
+	// Seed our MAC from the final state (sha1Digest) of the previous message
 	d.h[0] = binary.BigEndian.Uint32(mac[0:])
 	d.h[1] = binary.BigEndian.Uint32(mac[4:])
 	d.h[2] = binary.BigEndian.Uint32(mac[8:])
@@ -46,17 +48,7 @@ func SHA1Extension(mac, oldMessage, extension []byte) []byte {
 	return d.Sum(nil)
 }
 
-func (d *digest) Reset() {
-	d.h[0] = init0
-	d.h[1] = init1
-	d.h[2] = init2
-	d.h[3] = init3
-	d.h[4] = init4
-	d.nx = 0
-	d.len = 0
-}
-
-func (d *digest) Write(p []byte) (nn int, err error) {
+func (d *sha1Digest) Write(p []byte) (nn int, err error) {
 	nn = len(p)
 	d.len += uint64(nn)
 	if d.nx > 0 {
@@ -79,14 +71,14 @@ func (d *digest) Write(p []byte) (nn int, err error) {
 	return
 }
 
-func (d *digest) Sum(in []byte) []byte {
+func (d *sha1Digest) Sum(in []byte) []byte {
 	// Make a copy of d so that caller can keep writing and summing.
 	d0 := *d
 	hash := d0.checkSum()
 	return append(in, hash[:]...)
 }
 
-func (d *digest) checkSum() [20]byte {
+func (d *sha1Digest) checkSum() [20]byte {
 	len := d.len
 	// Padding.  Add a 1 bit and 0 bits until 56 bytes mod 64.
 	var tmp [64]byte
@@ -118,7 +110,7 @@ func (d *digest) checkSum() [20]byte {
 }
 
 // was blockGeneric from sha1block.go
-func block(dig *digest, p []byte) {
+func block(dig *sha1Digest, p []byte) {
 	var w [16]uint32
 
 	h0, h1, h2, h3, h4 := dig.h[0], dig.h[1], dig.h[2], dig.h[3], dig.h[4]

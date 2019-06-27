@@ -146,3 +146,29 @@ func Test_Challenge29_SHA1MACLengthExtension(t *testing.T) {
 		fmt.Printf("Challenge 29: SHA1 length extension attack used to forge an admin cookie!\n")
 	}
 }
+
+func Test_Challenge30_MD4LengthExtension(t *testing.T) {
+	key := []byte(`super secret key attacker does not know`)
+
+	hashOracle := func(input []byte) []byte { return MD4MAC(key, input) }
+	validateHashOracle := func(input, hash []byte) bool {
+		got := MD4MAC(key, input)
+		return bytes.Equal(got, hash)
+	}
+
+	ogMessage := []byte(`comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon`)
+	ogHash := hashOracle(ogMessage)
+
+	extension := []byte(`;admin=true`)
+	extHash := MD4Extension(ogHash, ogMessage, extension) // a hash of our extension from og hash state
+
+	keyLenPadding := bytes.Repeat([]byte{0x00}, len(key))
+	glue := messagePaddingMD4(append(ogMessage, keyLenPadding...))
+
+	forgedMessage := append(ogMessage, glue...)
+	forgedMessage = append(forgedMessage, extension...)
+
+	if validateHashOracle(forgedMessage, extHash) {
+		fmt.Printf("Challenge 30: MD4 length extension attack used to forge an admin cookie!\n")
+	}
+}
