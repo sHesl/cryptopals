@@ -2,9 +2,12 @@ package set4
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/sHesl/cryptopals/set1"
 	"github.com/sHesl/cryptopals/set2"
@@ -170,5 +173,115 @@ func Test_Challenge30_MD4LengthExtension(t *testing.T) {
 
 	if validateHashOracle(forgedMessage, extHash) {
 		fmt.Printf("Challenge 30: MD4 length extension attack used to forge an admin cookie!\n")
+	}
+}
+
+func Test_Challenge31_SHA1TimingAttack(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	insecureCompareHandler := func(file, sig []byte, skip int) bool {
+		h := hmac.New(sha1.New, key)
+		exp := h.Sum(file)
+
+		// It takes a while to compute the later values because of the sleep, so just skip cracked values
+		for i := skip; i < len(sig); i++ {
+			if sig[i] != exp[i] {
+				return false
+			}
+			time.Sleep(time.Millisecond * 5)
+		}
+
+		return true
+	}
+
+	file := make([]byte, 256)
+	rand.Read(file)
+
+	fakeSig := make([]byte, 20)
+	knownChars := 0
+
+	for i := 0; i < 20; i++ {
+		attempt := fakeSig[:knownChars]
+		attempt = append(attempt, bytes.Repeat([]byte{0x00}, 20-knownChars)...)
+
+		for b := byte(0); b < byte(255); b++ {
+			attempt[knownChars] = b
+			s := time.Now()
+			insecureCompareHandler(file, attempt, knownChars)
+			took := time.Since(s)
+
+			// If it takes roughly successMs to compare, it suggests our current byte is correct
+			if took >= time.Millisecond*5 {
+				fakeSig[knownChars] = b
+				knownChars++
+				break
+			}
+
+			// No hits? Suggests it was a zero
+			if b == byte(255) {
+				fakeSig[knownChars] = 0
+				knownChars++
+			}
+		}
+
+		if knownChars == 20 {
+			fmt.Printf("Challenge 31: Discovered valid SHA1 HMAC via timing leak! Got %X\n", fakeSig)
+		}
+	}
+}
+
+func Test_Challenge32_SHA1TimingAttack2(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	insecureCompareHandler := func(file, sig []byte, skip int) bool {
+		h := hmac.New(sha1.New, key)
+		exp := h.Sum(file)
+
+		// It takes a while to compute the later values because of the sleep, so just skip cracked values
+		for i := skip; i < len(sig); i++ {
+			if sig[i] != exp[i] {
+				return false
+			}
+			time.Sleep(time.Millisecond * 5)
+		}
+
+		return true
+	}
+
+	file := make([]byte, 256)
+	rand.Read(file)
+
+	fakeSig := make([]byte, 20)
+	knownChars := 0
+
+	for i := 0; i < 20; i++ {
+		attempt := fakeSig[:knownChars]
+		attempt = append(attempt, bytes.Repeat([]byte{0x00}, 20-knownChars)...)
+
+		for b := byte(0); b < byte(255); b++ {
+			attempt[knownChars] = b
+			s := time.Now()
+			insecureCompareHandler(file, attempt, knownChars)
+			took := time.Since(s)
+
+			// If it takes roughly successMs to compare, it suggests our current byte is correct
+			if took >= time.Millisecond*5 {
+				fakeSig[knownChars] = b
+				knownChars++
+				break
+			}
+
+			// No hits? Suggests it was a zero
+			if b == byte(255) {
+				fakeSig[knownChars] = 0
+				knownChars++
+			}
+		}
+
+		if knownChars == 20 {
+			fmt.Printf("Challenge 32: Discovered valid SHA1 HMAC via timing leak! Got %X\n", fakeSig)
+		}
 	}
 }
