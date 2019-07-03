@@ -1,0 +1,97 @@
+package set5
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
+	"math/big"
+	"testing"
+)
+
+func Test_Challenge33_DiffeHellman(t *testing.T) {
+	a := NewDiffeHellman()
+	b := NewDiffeHellman()
+
+	aKey := a.Key(b.Pub)
+	bKey := b.Key(a.Pub)
+
+	if !bytes.Equal(aKey, bKey) {
+		t.Fatalf("Diffe-Hellman secret generated did not match across participants")
+	}
+
+	fmt.Printf("Challenge 33: Diffe-Hellman shared secret generated!\n")
+}
+
+func Test_Challenge34_DiffeHellmanMITMKeyFixing(t *testing.T) {
+	alice := NewDiffeHellman()
+	bob := NewDiffeHellman()
+	eve := NewDiffeHellman()
+
+	alicesKey := alice.Key(p)
+	bobsKey := bob.Key(p)
+	evesKey := eve.Key(p)
+
+	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, evesKey) {
+		t.Fatalf("Key fixed Diffe-Hellman should produce identical secret between participants")
+	}
+
+	fmt.Printf("Challenge 34: Diffe-Hellman key fixing successful!\n")
+}
+
+func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
+	// First, let us experiment with setting G to be 1
+	alice := NewDiffeHellmanWithPG(p, big.NewInt(1))
+	bob := NewDiffeHellmanWithPG(p, big.NewInt(1))
+
+	// priv = rand % p
+	// pub = (1^^priv) % p == 1 % p == p
+	// s   = (pub^^priv) % p == (1^^priv) % p == 1
+	// If g is 1, the session key is always guaranteed to be 1
+	alicesKey := alice.Key(bob.Pub)
+	bobsKey := bob.Key(alice.Pub)
+
+	hash1 := sha256.Sum256(big.NewInt(1).Bytes()) // SHA256 on '1' to prove that key is formed from 1
+
+	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, hash1[:]) {
+		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+	}
+
+	// Let's also take a look what happens when g=p
+	alice = NewDiffeHellmanWithPG(p, p)
+	bob = NewDiffeHellmanWithPG(p, p)
+
+	// priv = rand % p
+	// pub = (p^^priv) % p == 0
+	// s   = (0^^priv) % p == 0
+	// If g = p, the session key is always guaranteed to be 0
+	alicesKey = alice.Key(bob.Pub)
+	bobsKey = bob.Key(alice.Pub)
+
+	hash0 := sha256.Sum256(big.NewInt(0).Bytes()) // SHA256 on '0' to prove that key is formed from 0
+
+	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, hash0[:]) {
+		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+	}
+
+	// Finally, let's check out  g=p-1
+	pMinus1 := new(big.Int)
+	pMinus1.Sub(p, big.NewInt(1))
+
+	alice = NewDiffeHellmanWithPG(p, pMinus1)
+	bob = NewDiffeHellmanWithPG(p, pMinus1)
+
+	// priv = rand % p
+	// pub = ((p-1)^^priv) % p == 1 OR p-1
+	// s   = (1^^priv) % p == 0 or p-1
+	// If g = p-1, the session key either 1, or p-1
+	alicesKey = alice.Key(bob.Pub)
+	bobsKey = bob.Key(alice.Pub)
+
+	hashP := sha256.Sum256(pMinus1.Bytes())
+
+	if (!bytes.Equal(alicesKey, hashP[:]) && !bytes.Equal(alicesKey, hash1[:])) || !bytes.Equal(alicesKey, bobsKey) {
+		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+	}
+
+	fmt.Printf("Challenge 35: Diffe-Hellman exploited via malicious G params!\n")
+}
