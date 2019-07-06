@@ -48,6 +48,11 @@ func NewDiffeHellmanWithPG(P, G *big.Int) DiffeHellman {
 }
 
 func (d *DiffeHellman) Key(B *big.Int) []byte {
+	// B is the product of raising g^^b mod P
+	// So if we raise B^^a, that is the same as G^^ab mod P
+	// And ofcourse the inverse is true (A == G^^ba mod P)
+	// Determining a, b or ab from their g expmod P values is 'difficult' (discrete log problem)
+	// For those who know one private element, calculate s is easy!
 	s := new(big.Int).Exp(B, d.priv, d.P)
 	x := sha256.Sum256(s.Bytes())
 

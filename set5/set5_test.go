@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+
+	"github.com/sHesl/cryptopals/set4"
 )
 
 func Test_Challenge33_DiffeHellman(t *testing.T) {
@@ -94,4 +96,53 @@ func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
 	}
 
 	fmt.Printf("Challenge 35: Diffe-Hellman exploited via malicious G params!\n")
+}
+
+func Test_Challenge36_SecureRemotePassword(t *testing.T) {
+	server := NewServer([]byte(`nobodywillguessthispassphrase!`))
+	client := NewClient("shesl+cryptopals@email.com")
+
+	// Client sends email and pub to server
+	server.Email = client.Email
+	server.ClientPub = client.Pub
+
+	// Server sends salt and pub to client
+	client.Salt = server.Salt
+	client.ServerPub = server.Pub
+
+	// Let's see if this works!
+	correct := client.Compute([]byte(`nobodywillguessthispassphrase!`))
+
+	if !server.Verify(correct) {
+		t.Fatalf("Server did not corroborate password negotiation")
+	}
+
+	// Let's check it fails on an incorrect password
+	incorrect := client.Compute([]byte(`qwerty123`))
+
+	if server.Verify(incorrect) {
+		t.Fatalf("Server failed to detect incorrect password!")
+	}
+
+	fmt.Printf("Challenge 36: SRP implemented successfully!\n")
+}
+
+func Test_Challenge37_BreakSecureRemotePassword(t *testing.T) {
+	server := NewServer([]byte(`nobodywillguessthispassphrase!`))
+	client := NewClient("shesl+cryptopals@email.com")
+	server.Email = client.Email
+
+	// Client sends a bogus pub key to the server
+	server.ClientPub = big.NewInt(0)
+
+	// We don't even need to calculate S, because we know it will be zero'd, so just hash a zero'd big.Int
+	result := sha256.Sum256(big.NewInt(0).Bytes())
+	zerodHMAC := set4.SHA1MAC(result[:], server.Salt) // Don't forget we still need to salt!
+
+	// The zero'd public key from the client should force the server to compute s=0
+	if !server.Verify(zerodHMAC) {
+		t.Fatalf("Server did not corroborate password negotiation")
+	}
+
+	fmt.Printf("Challenge 37: SRP broken via zero key!\n")
 }

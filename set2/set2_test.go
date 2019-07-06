@@ -279,7 +279,7 @@ func Test_Challenge16_CBCBitflipping(t *testing.T) {
 
 	// We need to know the location for the §'s we need to flip
 	// There are 2 blocks prefixed during encryption
-	// We provide 2 blocks (we need one before our user=admin block to poison)
+	// We provide 2 blocks (one containing user=admin, and one block before that to poison)
 	// Therefore, the location we need to poison is the third block
 	// Since our index returns a value in the second block, add anther blockLen to it
 	iFirst := strings.Index(chosenPlaintext, "0user") + blockLen
