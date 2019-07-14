@@ -23,7 +23,7 @@ func RSAKeyGen() rsa.PrivateKey {
 	qMinus1.Sub(q, big.NewInt(1))
 	et := new(big.Int).Mul(pMinus1, qMinus1)
 
-	// Set our exponent. Note that e=3 is weak af, Fermat
+	// Set our exponent. Note that e=3 is weak af, Fermat numbers larger than 3 should be used (i.e 65537)
 	e := big.NewInt(3)
 
 	// d = invmod(e, et)
