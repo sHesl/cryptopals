@@ -267,7 +267,7 @@ func Test_Challenge40_RSABroadcastE3Attack(t *testing.T) {
 		result.Sub(result, big.NewInt(1))
 	}
 
-	// Our D *doesn't* isn't the 'D' from any of our keys, instead it represents a 'middle' D from of our keys
+	// Our D isn't the 'D' from any of our keys, instead it represents a 'middle' D from of our keys
 	// combined, then cube rooted. As a result, we *don't* want to apply the final modulo. An easy way to
 	// achieve that, is to take our D and add one, and use that as the mod, D mod D+1 = D =/= D
 	attackKey := rsa.PrivateKey{D: result}
