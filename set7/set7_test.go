@@ -115,3 +115,51 @@ func Test_Challenge49_CBCMACForgery(t *testing.T) {
 
 	fmt.Printf("Challenge 49: Forged CBC MAC signature via length extension!\n")
 }
+
+func Test_Challenge50_CBCMACHashForgery(t *testing.T) {
+	// So, we're trying to forge a message with a certain hash. Since the hash is just the final block of
+	// encrypted plaintext, we need to include our desired alert, then some arbitrary final block, so that the
+	// final block encrypts to produce the desired hash. Since we have already encrypted our target block, we
+	// know the input that will be XOR'd with the mystery plaintext during the final block encryption.
+	// Our goal is to find z where 'enc(alertCiphertext XOR z) = target hash'
+
+	// To do this, we need to start from our final output, and determine the intermediate value that was passed
+	// in before the XOR operation. This will simply be decryptCBC(ciphertext, key)
+	cbcYellowSubDecrypt := func(ciphertext []byte) []byte {
+		block, _ := aes.NewCipher([]byte(`YELLOW SUBMARINE`))
+		result := make([]byte, len(ciphertext))
+		block.Decrypt(result, ciphertext)
+
+		return result
+	}
+
+	// We then determine the expected hash for the 'good' input...
+	cbcMACYellowSub := func(msg []byte) []byte {
+		block, _ := aes.NewCipher([]byte(`YELLOW SUBMARINE`))
+		cbc := cipher.NewCBCEncrypter(block, make([]byte, 16))
+		cbc.CryptBlocks(msg, msg)
+
+		return cryptocrack.LastBlock(msg, block.BlockSize())
+	}
+
+	originalAlert := []byte("alert('MZA who was that?');;;;;;")
+	originalHash := cbcMACYellowSub(originalAlert)
+
+	// as well as reversing our final hash to produce the intermediate value for our last block
+	intermediateValue := cbcYellowSubDecrypt(originalHash)
+
+	// Next, we need to know our preceding blocks output; this is the value that will be XOR'd with our mystery
+	// plaintext to produce the expected hash.
+	encryptedTarget := cbcMACYellowSub([]byte("alert('Ayo, the Wu is back!');;;"))
+
+	// To calculate our mystery value, we need to XOR our encrypted output, and our intermediate value
+	poisonedBlock := set1.XOR(encryptedTarget, intermediateValue)
+
+	collision := append([]byte("alert('Ayo, the Wu is back!');;;"), poisonedBlock...)
+
+	result := cbcMACYellowSub(collision)
+
+	if bytes.Equal(result, originalHash) {
+		fmt.Printf("Challenge 50: Forced a CBC MAC collision via ciphertext manipulation!\n")
+	}
+}
