@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-// Implementation copied from cryto/md4
+// Implementation copied from crypto/md4
 
 const (
 	_Chunk = 64

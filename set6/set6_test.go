@@ -279,7 +279,6 @@ func Test_Challenge46_RSAParityOracle(t *testing.T) {
 
 	e := big.NewInt(int64(priv.PublicKey.E))
 	factor := big.NewInt(2) // start from 2, but we will x2 this every round
-	bigTwo := big.NewInt(2) // keep a big 2 constant for x2ing our factor each round
 
 	// our plaintext exists somewhere within the bound [0, N]
 	upperBound := priv.N
@@ -290,7 +289,7 @@ func Test_Challenge46_RSAParityOracle(t *testing.T) {
 	for i := 0; i < bitLen; i++ {
 		// N is a prime (and therefore odd), so we have to multiply our ciphertext by a multiple of 2, otherwise
 		// it would always be false! Since our parity oracle decrypts the contents, we can't just do ciphertext*f,
-		// we need to do c * enc(f). We can use the public key to encrypt the
+		// we need to do c * enc(f). We can use the public key to encrypt the factor.
 		enc2 := new(big.Int).Exp(factor, e, priv.PublicKey.N)
 		cf := new(big.Int).Mul(c, enc2) // original ciphertext * our factor
 
@@ -314,5 +313,6 @@ func Test_Challenge46_RSAParityOracle(t *testing.T) {
 		factor.Mul(factor, bigTwo)
 	}
 
-	fmt.Printf("Challenge 46: Cracked RSA encrypted ciphertext via parrity oracle. \n\tMessage: '%s'\n", lowerBound.Bytes())
+	fmt.Printf("Challenge 46: Cracked RSA encrypted ciphertext via parity oracle. \n\t"+
+		"Message: '%s'\n", lowerBound.Bytes())
 }

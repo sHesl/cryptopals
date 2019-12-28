@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 )
 
-// Implementation copied from cryto/sha1
+// Implementation copied from crypto/sha1
 
 const (
 	chunk = 64

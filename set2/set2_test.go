@@ -271,7 +271,7 @@ func Test_Challenge16_CBCBitflipping(t *testing.T) {
 	rand.Read(randomIV)
 
 	// We specifically construct a plaintext that we can flip the bytes of the preceding block to replace the
-	// 0's with reserved characters. This means our poisoned block must be preceeded by a block we can destroy.
+	// 0's with reserved characters. This means our poisoned block must be preceded by a block we can destroy.
 	// The reason we use 0's is because they are represented as 00000000 in binary, and therefore are easy to
 	// work with when bitflipping.
 	chosenPlaintext := "a block of data stuff0user0admin"

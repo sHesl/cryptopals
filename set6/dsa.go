@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-var dsaP, dsaQ, dsaG, bigZero, bigOne *big.Int
+var dsaP, dsaQ, dsaG, bigZero, bigOne, bigTwo, bigThree *big.Int
 
 func init() {
 	dsaP, _ = new(big.Int).SetString("800000000000000089e1855218a0e7dac38136ffafa72eda7859f2171e25e65eac698c1702578b07dc2a1076da241c76c62d374d8389ea5aeffd3226a0530cc565f3bf6b50929139ebeac04f48c3c84afb796d61e5a4f9a8fda812ab59494232c7d2b4deb50aa18ee9e132bfa85ac4374d7f9091abc3d015efc871a584471bb1", 16)
@@ -16,6 +16,8 @@ func init() {
 
 	bigZero = big.NewInt(0)
 	bigOne = big.NewInt(1)
+	bigTwo = big.NewInt(2)
+	bigThree = big.NewInt(3)
 }
 
 type DSAKey struct {

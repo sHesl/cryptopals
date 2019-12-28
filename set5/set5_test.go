@@ -11,40 +11,40 @@ import (
 	"github.com/sHesl/cryptopals/set4"
 )
 
-func Test_Challenge33_DiffeHellman(t *testing.T) {
-	a := NewDiffeHellman()
-	b := NewDiffeHellman()
+func Test_Challenge33_DiffieHellman(t *testing.T) {
+	a := NewDiffieHellman()
+	b := NewDiffieHellman()
 
 	aKey := a.Key(b.Pub)
 	bKey := b.Key(a.Pub)
 
 	if !bytes.Equal(aKey, bKey) {
-		t.Fatalf("Diffe-Hellman secret generated did not match across participants")
+		t.Fatalf("Diffie-Hellman secret generated did not match across participants")
 	}
 
-	fmt.Printf("Challenge 33: Diffe-Hellman shared secret generated!\n")
+	fmt.Printf("Challenge 33: Diffie-Hellman shared secret generated!\n")
 }
 
-func Test_Challenge34_DiffeHellmanMITMKeyFixing(t *testing.T) {
-	alice := NewDiffeHellman()
-	bob := NewDiffeHellman()
-	eve := NewDiffeHellman()
+func Test_Challenge34_DiffieHellmanMITMKeyFixing(t *testing.T) {
+	alice := NewDiffieHellman()
+	bob := NewDiffieHellman()
+	eve := NewDiffieHellman()
 
 	alicesKey := alice.Key(p)
 	bobsKey := bob.Key(p)
 	evesKey := eve.Key(p)
 
 	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, evesKey) {
-		t.Fatalf("Key fixed Diffe-Hellman should produce identical secret between participants")
+		t.Fatalf("Key fixed Diffie-Hellman should produce identical secret between participants")
 	}
 
-	fmt.Printf("Challenge 34: Diffe-Hellman key fixing successful!\n")
+	fmt.Printf("Challenge 34: Diffie-Hellman key fixing successful!\n")
 }
 
-func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
+func Test_Challenge35_DiffieHellmanMaliciousG(t *testing.T) {
 	// First, let us experiment with setting G to be 1
-	alice := NewDiffeHellmanWithPG(p, big.NewInt(1))
-	bob := NewDiffeHellmanWithPG(p, big.NewInt(1))
+	alice := NewDiffieHellmanWithPG(p, big.NewInt(1))
+	bob := NewDiffieHellmanWithPG(p, big.NewInt(1))
 
 	// priv = rand % p
 	// pub = (1^^priv) % p == 1 % p == p
@@ -56,12 +56,12 @@ func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
 	hash1 := sha256.Sum256(big.NewInt(1).Bytes()) // SHA256 on '1' to prove that key is formed from 1
 
 	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, hash1[:]) {
-		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+		t.Fatalf("Malicious Diffie-Hellman should produce identical and predictable secret between participants")
 	}
 
 	// Let's also take a look what happens when g=p
-	alice = NewDiffeHellmanWithPG(p, p)
-	bob = NewDiffeHellmanWithPG(p, p)
+	alice = NewDiffieHellmanWithPG(p, p)
+	bob = NewDiffieHellmanWithPG(p, p)
 
 	// priv = rand % p
 	// pub = (p^^priv) % p == 0
@@ -73,15 +73,15 @@ func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
 	hash0 := sha256.Sum256(big.NewInt(0).Bytes()) // SHA256 on '0' to prove that key is formed from 0
 
 	if !bytes.Equal(alicesKey, bobsKey) || !bytes.Equal(alicesKey, hash0[:]) {
-		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+		t.Fatalf("Malicious Diffie-Hellman should produce identical and predictable secret between participants")
 	}
 
 	// Finally, let's check out  g=p-1
 	pMinus1 := new(big.Int)
 	pMinus1.Sub(p, big.NewInt(1))
 
-	alice = NewDiffeHellmanWithPG(p, pMinus1)
-	bob = NewDiffeHellmanWithPG(p, pMinus1)
+	alice = NewDiffieHellmanWithPG(p, pMinus1)
+	bob = NewDiffieHellmanWithPG(p, pMinus1)
 
 	// priv = rand % p
 	// pub = ((p-1)^^priv) % p == 1 OR p-1
@@ -93,10 +93,10 @@ func Test_Challenge35_DiffeHellmanMaliciousG(t *testing.T) {
 	hashP := sha256.Sum256(pMinus1.Bytes())
 
 	if (!bytes.Equal(alicesKey, hashP[:]) && !bytes.Equal(alicesKey, hash1[:])) || !bytes.Equal(alicesKey, bobsKey) {
-		t.Fatalf("Malicious Diffe-Hellman should produce identical and predictable secret between participants")
+		t.Fatalf("Malicious Diffie-Hellman should produce identical and predictable secret between participants")
 	}
 
-	fmt.Printf("Challenge 35: Diffe-Hellman exploited via malicious G params!\n")
+	fmt.Printf("Challenge 35: Diffie-Hellman exploited via malicious G params!\n")
 }
 
 func Test_Challenge36_SecureRemotePassword(t *testing.T) {
@@ -136,11 +136,11 @@ func Test_Challenge37_BreakSecureRemotePassword(t *testing.T) {
 	// Client sends a bogus pub key to the server
 	server.ClientPub = big.NewInt(0)
 
-	// We don't even need to calculate S, because we know it will be zero'd, so just hash a zero'd big.Int
+	// We don't even need to calculate S, because we know it will be zeroed, so just hash a zeroed big.Int
 	result := sha256.Sum256(big.NewInt(0).Bytes())
 	zerodHMAC := set4.SHA1MAC(result[:], server.Salt) // Don't forget we still need to salt!
 
-	// The zero'd public key from the client should force the server to compute s=0
+	// The zeroed public key from the client should force the server to compute s=0
 	if !server.Verify(zerodHMAC) {
 		t.Fatalf("Server did not corroborate password negotiation")
 	}

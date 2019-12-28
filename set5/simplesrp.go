@@ -18,7 +18,7 @@ type SimpleSRPServer struct {
 	K        *big.Int
 	U        *big.Int
 
-	dh DiffeHellman
+	dh DiffieHellman
 
 	// per attempt
 	Email     string
@@ -28,7 +28,7 @@ type SimpleSRPServer struct {
 func NewSimpleServer(password []byte) SimpleSRPServer {
 	s := SimpleSRPServer{
 		password: password,
-		dh:       NewDiffeHellman(),
+		dh:       NewDiffieHellman(),
 	}
 
 	// A random salt is generated, and concatenated with the password to prevent dict/rainbow table attacks
@@ -45,7 +45,7 @@ func NewSimpleServer(password []byte) SimpleSRPServer {
 	s.v = new(big.Int).Exp(g, x, p)
 
 	// A secure implemention integrates v into the public key, but this 'simple' implementation just returns
-	// the Diffe-Hellman public component
+	// the Diffie-Hellman public component
 	s.Pub = s.dh.Pub
 
 	// Also use a random number for our U, instead of hashing public keys together
@@ -91,7 +91,7 @@ func (s *SimpleSRPServer) HMACAttempt(attempt []byte) []byte {
 
 type SimpleSRPClient struct {
 	Email string
-	DiffeHellman
+	DiffieHellman
 
 	// per attempt
 	Salt      []byte
@@ -102,8 +102,8 @@ type SimpleSRPClient struct {
 
 func NewSimpleClient(email string) SimpleSRPClient {
 	c := SimpleSRPClient{
-		Email:        email,
-		DiffeHellman: NewDiffeHellman(),
+		Email:         email,
+		DiffieHellman: NewDiffieHellman(),
 	}
 
 	return c
@@ -116,7 +116,7 @@ func (c *SimpleSRPClient) Compute(password []byte) []byte {
 
 	exp := new(big.Int)
 	exp.Mul(x, c.U) // use the 'random' U decreed by the server
-	exp.Add(exp, c.DiffeHellman.priv)
+	exp.Add(exp, c.DiffieHellman.priv)
 	exp.Mod(exp, p)
 
 	S := new(big.Int)

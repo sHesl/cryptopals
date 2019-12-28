@@ -16,7 +16,7 @@ type Server struct {
 	Pub      *big.Int
 	K        *big.Int
 
-	dh DiffeHellman
+	dh DiffieHellman
 
 	// per attempt
 	Email     string
@@ -28,7 +28,7 @@ var k = big.NewInt(3)
 func NewServer(password []byte) Server {
 	s := Server{
 		password: password,
-		dh:       NewDiffeHellman(),
+		dh:       NewDiffieHellman(),
 	}
 
 	// A random salt is generated, and concatenated with the password to prevent dict/rainbow table attacks
@@ -72,7 +72,7 @@ func (s *Server) Verify(hmac []byte) bool {
 
 type Client struct {
 	Email string
-	DiffeHellman
+	DiffieHellman
 
 	// per attempt
 	Salt      []byte
@@ -82,8 +82,8 @@ type Client struct {
 
 func NewClient(email string) Client {
 	c := Client{
-		Email:        email,
-		DiffeHellman: NewDiffeHellman(),
+		Email:         email,
+		DiffieHellman: NewDiffieHellman(),
 	}
 
 	return c
@@ -113,7 +113,7 @@ func (c *Client) Compute(password []byte) []byte {
 	// exp = (a + u * x) % N
 	exp := new(big.Int)
 	exp.Mul(x, u)
-	exp.Add(exp, c.DiffeHellman.priv)
+	exp.Add(exp, c.DiffieHellman.priv)
 	exp.Mod(exp, p)
 
 	S := new(big.Int)

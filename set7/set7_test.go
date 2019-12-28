@@ -100,8 +100,8 @@ func Test_Challenge49_CBCMACForgery(t *testing.T) {
 	// next block (in our case, this will be the final block, aka the signature!).
 	xord := set1.XOR(genuineMAC, extension)
 
-	// this is where the attacks falls down, we'd need the victim to sign our extension, which isn't particuarly
-	// likely imo...
+	// this is where the attacks falls down, we'd need the victim to sign our extension, which isn't
+	// particularly likely imo...
 	xordMAC := client(xord, zeroIV)
 
 	fakeMessage := []byte(`from=acct1&tx_list=acct2:10;acct3:100;acct4:121;shesl:1000000;`)
@@ -145,7 +145,7 @@ func Test_Challenge50_CBCMACHashForgery(t *testing.T) {
 	originalAlert := []byte("alert('MZA who was that?');;;;;;")
 	originalHash := cbcMACYellowSub(originalAlert)
 
-	// as well as reversing our final hash to produce the intermediate value for our last block
+	// ...as well as reversing our final hash to produce the intermediate value for our last block
 	intermediateValue := cbcYellowSubDecrypt(originalHash)
 
 	// Next, we need to know our preceding blocks output; this is the value that will be XOR'd with our mystery

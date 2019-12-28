@@ -14,7 +14,7 @@ var linotypeE = []byte("xzXZ")
 
 // scoreRune is a very crude frequency analysis check that highly weights spaces and characters
 // deemed most frequent by linotype machine letter placements. Punctuation symbols are also considered
-// resonably sensible and are weighted according to my own guestimations of frequency.
+// reasonably sensible and are weighted according to my own guestimations of frequency.
 func scoreRune(r rune) int {
 	if unicode.In(r, unicode.Latin) {
 		for i := 0; i < len(linotypeRanges); i++ {

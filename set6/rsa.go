@@ -8,7 +8,7 @@ import (
 	"github.com/sHesl/cryptopals/set5"
 )
 
-// pkcs1v15.go contains precomuted ANS1 digests for numerous hashes, I've copied the SHA256 one
+// pkcs1v15.go contains precomputed ANS1 digests for numerous hashes, I've copied the SHA256 one
 var sha256ANS1 = []byte{
 	0x30, 0x31, 0x30, 0x0d, 0x06,
 	0x09, 0x60, 0x86, 0x48, 0x01,
