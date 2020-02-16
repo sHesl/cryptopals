@@ -2,10 +2,12 @@ package set7
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/sHesl/cryptopals/cryptocrack"
@@ -161,5 +163,84 @@ func Test_Challenge50_CBCMACHashForgery(t *testing.T) {
 
 	if bytes.Equal(result, originalHash) {
 		fmt.Printf("Challenge 50: Forced a CBC MAC collision via ciphertext manipulation!\n")
+	}
+}
+
+func Test_Challenge51_CompressionRatioSideChannelAttack(t *testing.T) {
+	reqB := []byte(`POST / HTTP/1.1
+Host: cryptopals.com
+Cookie: sessionid=XXXXX
+Content-Length: 86
+this is the body of the request, contents don't matter, but being longer makes this easier
+because the chance of false positives from equivalent compression lengths decreases`)
+	placeholderCookie := []byte("XXXXX")
+
+	formatReq := func(cookie []byte) []byte {
+		return bytes.Replace(reqB, placeholderCookie, cookie, 1)
+	}
+
+	compress := func(req []byte) []byte {
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		zw.Write(req)
+		zw.Close()
+
+		return buf.Bytes()
+	}
+
+	encryptAES := func(b []byte) []byte {
+		key, iv := make([]byte, 32), make([]byte, 16)
+		rand.Read(key)
+		rand.Read(iv)
+
+		cc, _ := aes.NewCipher(key)
+		stream := cipher.NewCTR(cc, iv)
+		stream.XORKeyStream(b, b)
+
+		return b
+	}
+
+	compressionOracle := func(cookie []byte) int {
+		return len(encryptAES(compress(formatReq(cookie))))
+	}
+
+	// This takes quite a while lol, trimming the size of the cookie and the charset so the test can complete.
+	// Less chars means waaaayy more collisions, but this at least demonstrates the point.
+	cookie := []byte("aecaga")
+	charset := []byte("abcdefgh")
+	targetLen := compressionOracle(cookie)
+
+	// We're going to get a lot of false positives/negatives, keep a track of any options that compress
+	allOptions := make(map[string]interface{})
+
+	// If the cookie we try compresses to the same length, it _could_ be valid
+	matchFn := func(b []byte) bool { return compressionOracle(b) == targetLen }
+
+	var wg sync.WaitGroup
+	var mut sync.Mutex
+
+	wg.Add(len(charset))
+
+	for _, char := range charset {
+		go func(c byte) {
+			n := cryptocrack.CartesianEnumerator(charset, c, len(cookie))
+
+			for {
+				if option := n(); matchFn(option) {
+					mut.Lock()
+					allOptions[string(option)] = struct{}{}
+					mut.Unlock()
+				} else if len(option) == 0 || option[0] != c {
+					wg.Done()
+					break
+				}
+			}
+		}(char)
+	}
+
+	wg.Wait()
+
+	if _, ok := allOptions[string(cookie)]; ok {
+		fmt.Printf("Challenge 51: Determined valid session cookie via compression oracle!\n")
 	}
 }
