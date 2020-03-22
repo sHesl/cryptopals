@@ -7,7 +7,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/sHesl/cryptopals/cryptocrack"
@@ -168,11 +167,11 @@ func Test_Challenge50_CBCMACHashForgery(t *testing.T) {
 
 func Test_Challenge51_CompressionRatioSideChannelAttack(t *testing.T) {
 	reqB := []byte(`POST / HTTP/1.1
-Host: cryptopals.com
-Cookie: sessionid=XXXXX
-Content-Length: 86
-this is the body of the request, contents don't matter, but being longer makes this easier
-because the chance of false positives from equivalent compression lengths decreases`)
+	Host: cryptopals.com
+	Cookie: sessionid=XXXXX
+	Content-Length: 86
+	this is the body of the request, contents don't matter, but being longer makes this easier
+	because the chance of false positives from equivalent compression lengths decreases`)
 	placeholderCookie := []byte("XXXXX")
 
 	formatReq := func(cookie []byte) []byte {
@@ -206,7 +205,7 @@ because the chance of false positives from equivalent compression lengths decrea
 
 	// This takes quite a while lol, trimming the size of the cookie and the charset so the test can complete.
 	// Less chars means waaaayy more collisions, but this at least demonstrates the point.
-	cookie := []byte("aecaga")
+	cookie := []byte("aecabf")
 	charset := []byte("abcdefgh")
 	targetLen := compressionOracle(cookie)
 
@@ -216,31 +215,111 @@ because the chance of false positives from equivalent compression lengths decrea
 	// If the cookie we try compresses to the same length, it _could_ be valid
 	matchFn := func(b []byte) bool { return compressionOracle(b) == targetLen }
 
-	var wg sync.WaitGroup
-	var mut sync.Mutex
-
-	wg.Add(len(charset))
-
-	for _, char := range charset {
-		go func(c byte) {
-			n := cryptocrack.CartesianEnumerator(charset, c, len(cookie))
-
-			for {
-				if option := n(); matchFn(option) {
-					mut.Lock()
-					allOptions[string(option)] = struct{}{}
-					mut.Unlock()
-				} else if len(option) == 0 || option[0] != c {
-					wg.Done()
-					break
-				}
-			}
-		}(char)
+	for option := range cryptocrack.BruteForce(charset, len(cookie), matchFn, -1) {
+		allOptions[string(option)] = struct{}{}
 	}
-
-	wg.Wait()
 
 	if _, ok := allOptions[string(cookie)]; ok {
 		fmt.Printf("Challenge 51: Determined valid session cookie via compression oracle!\n")
 	}
+}
+
+func Test_Challenge52_IteratedHashFunctionMultiCollisions(t *testing.T) {
+	// hashFn is a weak Merkle-Damgard hash func designed to produce lots of collisions
+	hashFn := func(m, h []byte, byteLen int) []byte {
+		buf := make([]byte, 16)
+		copy(buf, m)
+
+		b, _ := aes.NewCipher(h) // h (aka digest) is used as the key
+		b.Encrypt(buf, buf)      // message block encrypted under h gives us another digest
+
+		// We're dealing with a 16 byte block size here, which gives us 256^16 possible outcomes, waaaay to many.
+		// In order to reduce the space, truncate the result to byteLen, and reduce the charset to base 64
+		for i := range m {
+			buf[i] = buf[i]/4 + 31 // 256/4 for base 64, +31 so we fall between alphanumeric chars
+		}
+
+		return append(buf[:byteLen], bytes.Repeat([]byte{0}, 16-byteLen)...) // repad back to 16 bytes
+	}
+
+	// iterativeHashFn takes a long message 'm' and hashes one 16 byte block at a time, each iteration using
+	// the digest produced by the previous step.
+	iterativeHashFn := func(m []byte, h []byte, byteLen int) []byte {
+		block := make([]byte, 16)
+		digest := make([]byte, len(h))
+		copy(digest, h)
+
+		for i := 0; i < len(m); i += 16 {
+			copy(block, m[i:i+16])
+			digest = hashFn(block, digest, byteLen)
+		}
+		return digest
+	}
+
+	colGenFn := func(h, t []byte, byteLen int) func(m []byte) bool {
+		return func(m []byte) bool { return bytes.Equal(t, hashFn(m, h, byteLen)) }
+	}
+
+	// The issue with iterative hash functions is that if you have 2 successive collisions, you can make 4
+	// different colliding messages from the two original collisions. Let me demonstrate:
+	//
+	//   h2 = hash(block1, h1) == hash(block2, h1) // block1 and block2 collide, producing the same digest (h2)
+	//   h3 = hash(block3, h2) == hash(block4, h2) // block3 and block4 collide when using h2
+	//
+	// So at first glance, we have 2 collisions (h1,h2 and h3,h4) but, we can also rearrange these blocks to
+	// produce yet more collisions! h1 and h2 are interchangeable (as are block3 and block4), so we could do:
+	//
+	//	h3 = iterHash([block1, block3], h1) OR
+	//       iterHash([block2, block3], h1) OR
+	//       iterHash([block1, block4], h1) OR
+	//       iterHash([block2, block4]. h1)
+	//
+	// All 4 combinations all produce the same digest, yet use different input messages!
+
+	// We start with any given initial state, and we're looking for any single collision against a given message
+	charset := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890=+")
+	initialH := []byte("preseeded digest")
+	initialByteLen := 3
+
+	weakCollisionsTarget := 4
+	weakCollisionPool := make([][][]byte, weakCollisionsTarget/2)
+	previousState := initialH
+
+	for i := 0; i < len(weakCollisionPool); i++ {
+		// Use the previous state as the h for our next iteration. We also re-use it as the message we're
+		// looking to get another collision from (though we could have used literally any string here)
+		outputState := hashFn(previousState, previousState, initialByteLen)
+
+		// ... now we just need to find any given message that collides with this random message
+		iter := make([][]byte, 3) // record both m1, m2 and hash(m1)
+		iter[0] = previousState
+		iter[1] = <-cryptocrack.BruteForce(charset, 16, colGenFn(previousState, outputState, initialByteLen), 1)
+		iter[2] = outputState
+
+		weakCollisionPool[i] = iter
+		previousState = outputState
+	}
+
+	// For each block, we have two options we can pick to get the same output digest. This allows us to make
+	// manyfold more messages that all produce the same _final_ digest.
+	setA, setB := make([][]byte, len(weakCollisionPool)), make([][]byte, len(weakCollisionPool))
+	for i, pair := range weakCollisionPool {
+		setA[i] = pair[0]
+		setB[i] = pair[1]
+	}
+
+	collidingMessages := cryptocrack.CombinationsFromSets(setA, setB)
+
+	a1 := iterativeHashFn(collidingMessages[0], initialH, initialByteLen)
+	a2 := iterativeHashFn(collidingMessages[1], initialH, initialByteLen)
+	a3 := iterativeHashFn(collidingMessages[2], initialH, initialByteLen)
+
+	if bytes.Equal(a1, a2) && bytes.Equal(a2, a3) {
+		fmt.Printf("Challenge 52: Proved we can find collisions sublinearly from an iterative hash func!\n")
+	}
+
+	// So here, we demonstrated how 3 different input messages all produced the same digest, this will allow
+	// us to crack an iterated, cascaded hash function like hashFn = weakerHash(m) || strongerHash(m).
+	// To perform enough hashes to guarantee a collision will probably take more than 10 minutes, full solution
+	// in cryptopals52.go
 }
